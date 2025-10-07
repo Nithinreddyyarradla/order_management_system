@@ -1,0 +1,3 @@
+com/nexustrade/engine/MatchingEngineTest.class
+com/nexustrade/integration/OrderFlowIntegrationTest.class
+com/nexustrade/service/OrderServiceTest.class

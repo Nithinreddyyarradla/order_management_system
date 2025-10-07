@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: nexustrade-test
+
+  # H2 In-Memory Database for Testing
+  datasource:
+    url: jdbc:h2:mem:nexustrade_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # Load schema from file
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+  # JPA Configuration for Tests
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        format_sql: false
+    defer-datasource-initialization: true
+
+  # Disable Kafka for unit tests
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      auto-startup: false
+
+  # Disable batch auto-run
+  batch:
+    job:
+      enabled: false
+
+# NexusTrade Test Configuration
+nexustrade:
+  matching-engine:
+    thread-pool-size: 2
+    order-queue-capacity: 1000
+
+  kafka:
+    topics:
+      orders: test.nexustrade.orders
+      trades: test.nexustrade.trades
+      settlements: test.nexustrade.settlements
+
+  batch:
+    trade-archive:
+      chunk-size: 100
+      cron: "0 0 0 * * *"  # Disabled for tests
+    reconciliation:
+      cron: "0 0 0 * * *"
+    risk-report:
+      cron: "0 0 0 * * *"
+      output-path: ./target/test-reports/
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.nexustrade: DEBUG
+    org.springframework.jdbc: DEBUG

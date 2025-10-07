@@ -1,0 +1,131 @@
+spring:
+  application:
+    name: nexustrade
+
+  # Oracle Database Configuration
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:XE
+    username: nexustrade
+    password: nexustrade_password
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      pool-name: NexusTradeHikariPool
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      leak-detection-threshold: 60000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+        format_sql: true
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      group-id: nexustrade-order-processor
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: com.nexustrade.model
+    listener:
+      concurrency: 3
+      ack-mode: manual
+
+  # Spring Batch Configuration
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# Server Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# NexusTrade Custom Configuration
+nexustrade:
+  matching-engine:
+    thread-pool-size: ${MATCHING_ENGINE_THREADS:8}
+    order-queue-capacity: 100000
+
+  batch:
+    trade-archive:
+      chunk-size: 1000
+      cron: "0 */5 * * * *"  # Every 5 minutes
+    reconciliation:
+      cron: "0 0 17 * * MON-FRI"  # 5 PM on weekdays (market close)
+    risk-report:
+      cron: "0 0 18 * * MON-FRI"  # 6 PM on weekdays
+      output-path: ./reports/
+
+  kafka:
+    topics:
+      orders: nexustrade.orders
+      trades: nexustrade.trades
+      settlements: nexustrade.settlements
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.nexustrade: DEBUG
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:nexustrade_test;DB_CLOSE_DELAY=-1;MODE=Oracle
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+logging:
+  level:
+    com.nexustrade: DEBUG
